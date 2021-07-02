@@ -1,0 +1,815 @@
+openapi: 3.0.0
+info:
+  title: Global Search
+  description: "Search for resources with the global and shared resource properties\
+    \ repository integrated in the IBM Cloud platform. The search repository stores\
+    \ and searches cloud resources attributes, which categorize or classify resources.\
+    \ A resource is a physical or logical component that can be created or reserved\
+    \ for an application or service instance and is owned by resource providers, such\
+    \ as Cloud Foundry, IBM Kubernetes Service, or resource controller in IBM Cloud.\
+    \ Resources are uniquely identified by a Cloud Resource Name (CRN)  or by an IMS\
+    \ ID. The properties of a resource include tags and system properties. Both properties\
+    \ are defined in an IBM Cloud billing account, and span across many regions."
+  termsOfService: https://
+  license:
+    name: "This product includes software originally developed by IBM Corporation,\
+      \ Copyright 2016-2019 IBM Corp."
+    url: https://www.ibm.com/legal/us/en/copytrade.shtml
+  version: 3.0.0
+  x-alternate-name: global_search
+  x-ibm-name: global-searching-and-tagging-api-specification
+  x-codegen-config:
+    java:
+      apiPackage: com.ibm.cloud.platform_services
+    go:
+      apiPackage: github.com/IBM/platform-services-go-sdk
+      improvedNameFormattingV2: true
+    python:
+      apiPackage: ibm_platform_services
+  x-sdk-supported-languages:
+  - curl
+  - go
+  - java
+  - node
+  - python
+  x-last-updated: 2021-06-23
+servers:
+- url: https://api.global-search-tagging.cloud.ibm.com
+security:
+- IAM: []
+tags:
+- name: Search
+  description: Operations for finding resources
+- name: Resource Types
+  description: Operations for resource types
+paths:
+  /v2/resources/search:
+    post:
+      tags:
+      - Search
+      summary: Find instances of resources (v2)
+      description: "Find resources in the internal search platform for a specific\
+        \ account\nID. You can optionally apply query strings. To filter results,\
+        \ you can insert\na string using the Lucene syntax and the query string is\
+        \ parsed into a series\nof terms and operators. A term can be a single word\
+        \ or a phrase, in which\ncase the search is performed for all the words, in\
+        \ the same order. To filter\nfor a specific value regardless of the property\
+        \ that contains it, use an asterisk\nas the key name. Results are filtered\
+        \ by the account ID and IAM subsystem.\nOnly resources that belong to the\
+        \ account ID and that are accessible by the\nclient are returned.\nThe usage\
+        \ of this API is deprecated for cases when the provider is not specified or\
+        \ \n`provider=ghost`. \n`/v3/resources/search` replaces this API for the deprecated\
+        \ cases."
+      operationId: v2_search
+      parameters:
+      - name: transaction-id
+        in: header
+        description: An aplhanumeric string that can be used to trace a request across
+          services. If not specified it will be automatically generated with the prefix
+          "gst-"
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+      - name: account_id
+        in: query
+        description: The account ID to filter resources.
+        required: false
+        style: form
+        explode: true
+        schema:
+          pattern: "^[a-fA-F0-9-]+$|^[*]{1}$"
+          type: string
+      - name: limit
+        in: query
+        description: The maximum number of hits to return. Defaults to 10.
+        required: false
+        style: form
+        explode: true
+        schema:
+          maximum: 1000
+          minimum: 1
+          type: integer
+          default: 10
+      - name: timeout
+        in: query
+        description: "A search timeout, bounding the search request to be executed\
+          \ within the specified time value and bail with the hits accumulated up\
+          \ to that point when expired. Defaults to the system defined timeout."
+        required: false
+        style: form
+        explode: true
+        schema:
+          maximum: 600000
+          minimum: 0
+          type: integer
+          default: 0
+      - name: offset
+        in: query
+        description: The offset is the index of the item you want to start returning
+          data from. Default is 0.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+          default: 0
+      - name: sort
+        in: query
+        description: Comma separated properties name used for sorting
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: provider
+        in: query
+        description: "Search providers. Supported values are `ghost` and `ims`. If\
+          \ not specified, the defaults to `ghost`. Specify a single provider."
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          default: ghost
+          enum:
+          - ghost
+          - ims
+      requestBody:
+        description: "It contains the query filters, the list of fields to be returned,\
+          \ and the search token (initally set to null or undefined)"
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchBody'
+        required: true
+      responses:
+        "200":
+          description: A result paging with the list of resources matching the provided
+            filters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResults'
+              examples:
+                response:
+                  value:
+                    items:
+                      "...": STRING
+                      crn: STRING
+                    more_data: BOOLEAN
+                    token: STRING
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        "401":
+          description: Unauthorized / Wrong auth token type IAM / Auth token not valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        "403":
+          description: Unauthorized operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        "500":
+          description: Internal Server Error / IAM not initialized / Malformed IAM
+            credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        "502":
+          description: Search IAM error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        default:
+          description: System problem or unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+      x-swagger-router-controller: swagger_controllers
+      x-sdk-exclude: true
+      x-ibm-permissions:
+        actions:
+        - name: global-search-tagging.resource.read
+      x-codegen-request-body-name: body
+  /v3/resources/search:
+    post:
+      tags:
+      - Search
+      summary: Find instances of resources (v3)
+      description: "Find Cloud Foundry resources, IAM-enabled resources, or \nstorage\
+        \ and network resources running on classic infrastructure in a \nspecific\
+        \ account ID. You can apply query strings if necessary. \n\nTo filter results,\
+        \ you can insert a string using the Lucene syntax and the \nquery string is\
+        \ parsed into a series of terms and operators. A term can be \na single word\
+        \ or a phrase, in which case the search is performed for all \nthe words,\
+        \ in the same order. To filter for a specific value regardless of \nthe property\
+        \ that contains it, type the search term without specifying a \nfield. Only\
+        \ resources that belong to the account ID and that are accessible \nby the\
+        \ client are returned. \n\nYou must use `/v3/resources/search` when you need\
+        \ to fetch more than `10000` \nresource items. The `/v2/resources/search`\
+        \ prohibits paginating through such \na big number. On the first call, the\
+        \ operation returns a live cursor on the \ndata that you must use on all the\
+        \ subsequent calls to get the next batch of \nresults until you get the empty\
+        \ result set. By default, the fields returned \nfor every resource are \"\
+        crn\", \"name\", \"family\", \"type\", and \"account_id\". You \ncan specify\
+        \ the subset of the fields you want in your request."
+      operationId: search
+      parameters:
+      - name: transaction-id
+        in: header
+        description: An aplhanumeric string that can be used to trace a request across
+          services. If not specified it will be automatically generated with the prefix
+          "gst-"
+        required: false
+        style: simple
+        explode: false
+        schema:
+          type: string
+      - name: account_id
+        in: query
+        description: The account ID to filter resources.
+        required: false
+        style: form
+        explode: true
+        schema:
+          pattern: "^[a-fA-F0-9-]+$|^[*]{1}$"
+          type: string
+      - name: limit
+        in: query
+        description: The maximum number of hits to return. Defaults to 10.
+        required: false
+        style: form
+        explode: true
+        schema:
+          maximum: 1000
+          minimum: 1
+          type: integer
+          default: 10
+      - name: timeout
+        in: query
+        description: "A search timeout, bounding the search request to be executed\
+          \ within the specified time value and bail with the hits accumulated up\
+          \ to that point when expired. Defaults to the system defined timeout."
+        required: false
+        style: form
+        explode: true
+        schema:
+          maximum: 600000
+          minimum: 0
+          type: integer
+          default: 0
+      - name: sort
+        in: query
+        description: Comma separated properties names used for sorting
+        required: false
+        style: form
+        explode: false
+        schema:
+          type: array
+          items:
+            pattern: "^[+-]?\\w+[\\w\\-\\.]*$"
+            type: string
+      requestBody:
+        description: "It contains the query filters on the first operation call, or\
+          \ the search_cursor on next calls. On subsequent calls, set the `search_cursor`\
+          \ to the value returned by the previous call. After the first, you must\
+          \ set only the `search_cursor`. Any other parameter but the `search_cursor`\
+          \ will be ignored. The `search_cursor` encodes all the information needed\
+          \ to get the next batch of `limit` data."
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanBody'
+        required: true
+      responses:
+        "200":
+          description: A result paging with the list of resources matching the provided
+            filters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanResult'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        "401":
+          description: Unauthorized / Wrong auth token type IAM / Auth token not valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        "403":
+          description: Unauthorized operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        "500":
+          description: Internal Server Error / IAM not initialized / Malformed IAM
+            credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        "502":
+          description: Search IAM error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        default:
+          description: System problem or unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+      x-swagger-router-controller: swagger_controllers
+      x-ibm-permissions:
+        actions:
+        - name: global-search-tagging.resource.read
+      x-codegen-request-body-name: body
+      x-sdk-operations:
+        request-examples:
+          curl:
+          - name: Example request
+            example:
+            - type: code
+              source:
+              - "curl -X POST --header \"Authorization: Bearer {iam_token}\" \\\n"
+              - "  --header \"Accept: application/json\" \\\n"
+              - "  --header \"Content-Type: application/json\" \\\n"
+              - "  -d '{\"query\": \"GST-sdk-*\", \"fields\": [\"*\"]}' \\\n"
+              - "  \"{base_url}/v3/resources/search\""
+          go:
+          - name: Example request
+            example:
+            - type: code
+              source:
+              - |
+                searchOptions := globalSearchService.NewSearchOptions()
+              - |
+                searchOptions.SetLimit(10)
+              - |
+                searchOptions.SetQuery("GST-sdk-*")
+              - "searchOptions.SetFields([]string{\"*\"})\n"
+              - |2+
+
+              - "scanResult, response, err := globalSearchService.Search(searchOptions)\n"
+              - "if err != nil {\n"
+              - |2
+                  panic(err)
+              - "}\n"
+              - "b, _ := json.MarshalIndent(scanResult, \"\", \"  \")\n"
+              - fmt.Println(string(b))
+          java:
+          - name: Example request
+            example:
+            - type: code
+              source:
+              - |
+                SearchOptions searchOptions = new SearchOptions.Builder()
+              - |2
+                  .query("GST-sdk-*")
+              - |2
+                  .fields(new java.util.ArrayList<String>(java.util.Arrays.asList("*")))
+              - |2
+                  .searchCursor(searchCursor)
+              - |2
+                  .build();
+              - |2+
+
+              - |
+                Response<ScanResult> response = service.search(searchOptions).execute();
+              - |
+                ScanResult scanResult = response.getResult();
+              - |2+
+
+              - System.out.println(scanResult);
+          node:
+          - name: Example request
+            example:
+            - type: code
+              source:
+              - "const params = {\n"
+              - "  query: 'GST-sdk-*',\n"
+              - "  fields: ['*'],\n"
+              - "  searchCursor: searchCursor,\n"
+              - "};\n"
+              - |2+
+
+              - |
+                globalSearchService.search(params)
+              - "  .then(res => {\n"
+              - "    console.log(JSON.stringify(res.result, null, 2));\n"
+              - "  })\n"
+              - "  .catch(err => {\n"
+              - |2
+                    console.warn(err)
+              - "  });"
+          python:
+          - name: Example request
+            example:
+            - type: code
+              source:
+              - "response = global_search_service.search(query='GST-sdk-*',\n"
+              - "                    fields=['*'])\n"
+              - |
+                scan_result = response.get_result()
+              - |2+
+
+              - "print(json.dumps(scan_result, indent=2))"
+  /v2/resources/supported_types:
+    get:
+      tags:
+      - Resource Types
+      summary: DEPRECATED. Get all GhoST indices.
+      description: Retrieves a list of all GhoST indices.
+      operationId: get_supported_types
+      responses:
+        "200":
+          description: Get all GhoST indices.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportedTypesList'
+        default:
+          description: System problem or unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+      deprecated: true
+      x-sdk-operations:
+        request-examples:
+          curl:
+          - name: Example request
+            example:
+            - type: code
+              source:
+              - "curl -X GET --header \"Authorization: Bearer {iam_token}\" \\\n"
+              - "  --header \"Accept: application/json\" \\\n"
+              - "  \"{base_url}/v2/resources/supported_types\""
+          go:
+          - name: Example request
+            example:
+            - type: code
+              source:
+              - |
+                getSupportedTypesOptions := globalSearchService.NewGetSupportedTypesOptions()
+              - |2+
+
+              - "supportedTypesList, response, err := globalSearchService.GetSupportedTypes(getSupportedTypesOptions)\n"
+              - "if err != nil {\n"
+              - |2
+                  panic(err)
+              - "}\n"
+              - "b, _ := json.MarshalIndent(supportedTypesList, \"\", \"  \")\n"
+              - fmt.Println(string(b))
+          java:
+          - name: Example request
+            example:
+            - type: code
+              source:
+              - |
+                GetSupportedTypesOptions getSupportedTypesOptions = new GetSupportedTypesOptions();
+              - |2+
+
+              - |
+                Response<SupportedTypesList> response = service.getSupportedTypes(getSupportedTypesOptions).execute();
+              - |
+                SupportedTypesList supportedTypesList = response.getResult();
+              - |2+
+
+              - System.out.println(supportedTypesList);
+          node:
+          - name: Example request
+            example:
+            - type: code
+              source:
+              - "globalSearchService.getSupportedTypes({})\n"
+              - "  .then(res => {\n"
+              - "    console.log(JSON.stringify(res.result, null, 2));\n"
+              - "  })\n"
+              - "  .catch(err => {\n"
+              - |2
+                    console.warn(err)
+              - "  });"
+          python:
+          - name: Example request
+            example:
+            - type: code
+              source:
+              - |
+                supported_types_list = global_search_service.get_supported_types(
+              - |
+                ).get_result()
+              - |2+
+
+              - "print(json.dumps(supported_types_list, indent=2))"
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          description: A code that identifies the error.
+        description:
+          type: string
+          description: A description of the solution to the error.
+        level:
+          type: string
+          description: The severity level of the error.
+          enum:
+          - error
+          - warning
+          - info
+        message:
+          type: string
+          description: A description of the error detected in the request.
+        more_info:
+          type: string
+          description: The location of additional information about the error.
+        response:
+          type: string
+          description: The response received for the request.
+      description: Error encountered in processing in the request
+    Errors:
+      properties:
+        errors:
+          type: array
+          description: List of errors encountered in processing the request
+          items:
+            $ref: '#/components/schemas/Error'
+      description: Error response
+      example:
+        code: STRING
+        description: STRING
+        level: STRING
+        message: STRING
+        more_info: STRING
+        response: STRING
+    SearchResults:
+      required:
+      - filter_error
+      - items
+      - limit
+      - more_data
+      - offset
+      - partial_data
+      type: object
+      properties:
+        items:
+          type: array
+          description: The array of results. Each item will represent a resource and
+            will contains all visible properties associated with it.
+          items:
+            $ref: '#/components/schemas/ResultItem'
+        more_data:
+          type: boolean
+          description: "If false, there is no more data to retrieve on the next page.\
+            \ If true, it's possible that there is more data to retrieve on the next\
+            \ page."
+        token:
+          type: string
+          description: The search token to use on the next call.
+        filter_error:
+          type: boolean
+          description: It is set to true if the result is partial of an IAM error
+            when validating user authorization on one or more resources. This field
+            is DEPRECATED and will be removed in future versions of this API
+        partial_data:
+          type: integer
+          description: Indicates if the result that is set might be partial or not.
+            Value 0 means the result set is complete. A value greater than 0 means
+            the result set might be incomplete. Its single bits identify the cause.
+            The first bit means the error is in the IAM filter. The second bit means
+            errors are in elasticsearch shards.
+        offset:
+          type: integer
+          description: Offset parameter specified by the user
+        limit:
+          type: integer
+          description: Limit parameter specified by the user
+      description: The results of the requested search.
+      example:
+        filter_error: true
+        offset: 6
+        limit: 1
+        more_data: true
+        partial_data: 0
+        items:
+        - crn: crn
+        - crn: crn
+        token: token
+    ResultItem:
+      type: object
+      properties:
+        crn:
+          type: string
+          description: Resource identifier in CRN format.
+      additionalProperties: true
+      description: A resource returned in a search result
+      example:
+        crn: crn
+      x-schema-name: ResultItem
+    SearchBody:
+      required:
+      - query
+      type: object
+      properties:
+        query:
+          type: array
+          description: The query string
+          items:
+            type: string
+        fields:
+          type: array
+          description: The list of the fields that are returned by the search. The
+            CRN is always returned.
+          items:
+            type: string
+        token:
+          type: string
+          description: "An opaque token. Initially set to null or undefined, then\
+            \ pass the value returned by the previous call"
+      additionalProperties: false
+      description: search body
+    ScanBody:
+      type: object
+      properties:
+        query:
+          type: string
+          description: The Lucene-formatted query string. Default to '*' if not set
+        fields:
+          minItems: 1
+          type: array
+          description: The list of the fields returned by the search. Defaults to
+            all. `crn` is always returned.
+          items:
+            type: string
+        search_cursor:
+          minLength: 1
+          type: string
+          description: An opaque search cursor that is returned on each operation
+            call and that must be set on next call.
+      additionalProperties: false
+      description: The request body associated with a search request.
+      example:
+        query: (region:us-south OR region:us-east) AND (type:cf-application OR type:cf-service-instance)
+        fields:
+        - crn
+        - doc.*
+    ScanResult:
+      required:
+      - items
+      - search_cursor
+      properties:
+        search_cursor:
+          minLength: 1
+          type: string
+          description: The search cursor to use on all calls after the first one.
+        limit:
+          type: integer
+          description: Value of the limit parameter specified by the user
+        items:
+          type: array
+          description: "The array of results. Each item represents a resource. An\
+            \ empty array signals the end of the result set, there are no more hits\
+            \ to fetch"
+          items:
+            $ref: '#/components/schemas/ResultItem'
+      description: The search scan response
+      example:
+        search_cursor: search_cursor
+        limit: 0
+        items:
+        - crn: crn
+        - crn: crn
+    SupportedTypesList:
+      properties:
+        supported_types:
+          type: array
+          description: A list of all GhoST indices.
+          items:
+            type: string
+      description: A list of all GhoST indices.
+      example:
+        supported_types:
+        - supported_types
+        - supported_types
+  parameters:
+    transaction-id:
+      name: transaction-id
+      in: header
+      description: An aplhanumeric string that can be used to trace a request across
+        services. If not specified it will be automatically generated with the prefix
+        "gst-"
+      required: false
+      style: simple
+      explode: false
+      schema:
+        type: string
+    account_id:
+      name: account_id
+      in: query
+      description: The account ID to filter resources.
+      required: false
+      style: form
+      explode: true
+      schema:
+        pattern: "^[a-fA-F0-9-]+$|^[*]{1}$"
+        type: string
+    timeout:
+      name: timeout
+      in: query
+      description: "A search timeout, bounding the search request to be executed within\
+        \ the specified time value and bail with the hits accumulated up to that point\
+        \ when expired. Defaults to the system defined timeout."
+      required: false
+      style: form
+      explode: true
+      schema:
+        maximum: 600000
+        minimum: 0
+        type: integer
+        default: 0
+    sort:
+      name: sort
+      in: query
+      description: Comma separated properties names used for sorting
+      required: false
+      style: form
+      explode: false
+      schema:
+        type: array
+        items:
+          pattern: "^[+-]?\\w+[\\w\\-\\.]*$"
+          type: string
+    limit:
+      name: limit
+      in: query
+      description: The maximum number of hits to return. Defaults to 10.
+      required: false
+      style: form
+      explode: true
+      schema:
+        maximum: 1000
+        minimum: 1
+        type: integer
+        default: 10
+  securitySchemes:
+    IAM:
+      type: apiKey
+      description: A valid IAM token. Remember to add the 'bearer' prefix to the token
+      name: Authorization
+      in: header
+x-aes-category:
+  bluemixList:
+  - Bluemix Platform
+  namespaceList:
+  - bluemix
+  technologyList:
+  - bluemix
+x-aes-documentation:
+  customized-codesnippet: []
+  externalInfo: {}
+  externalLinks: []
+x-aes-provider:
+  apiStatus: DRAFT
+  companyName: IBM
+  enableTryItOut: "NO"
+  languagelist:
+  - java
+  - javascript_jquery
+  - node
+  - python
+  - shell_curl
+  namespaceList:
+  - bluemix
+  productImage: ""
+  providerEmail: francesca.bonifazi@it.ibm.com
+  serviceStatus: STAGE_BETA
+  sumfindByProperties bodymary: REST API specification for the Search service
+  uniqueShortName: Global_Searching_and_Tagging_API_Specification
+x-ibm-configuration:
+  enforced: false
+  testable: true
+  phase: realized
+  cors:
+    enabled: true
