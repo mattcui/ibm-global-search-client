@@ -1,9 +1,5 @@
-module github.com/GIT_USER_ID/GIT_REPO_ID
+module github.com/mattcui/ibm-global-search-client
 
-go 1.13
+go 1.16
 
-require (
-	github.com/antihax/optional v1.0.0 // indirect
-	github.com/mattcui/ibm-global-search-client v0.0.0-20210702030819-d5e6b1224a42
-	golang.org/x/oauth2 v0.0.0-20210218202405-ba52d332ba99
-)
+require golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
